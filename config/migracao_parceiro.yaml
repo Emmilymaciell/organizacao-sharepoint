@@ -1,0 +1,57 @@
+# ============================================================
+# Migracao "5. Compartilhado PARCEIRO" -> PARCEIRO INFRA
+# Frente propria do projeto (docs/migracao_parceiro/ARQUITETURA.md).
+# Credenciais NAO ficam aqui.
+# ============================================================
+
+# Trava propria da frente. Valores:
+#   diagnostico : so leitura (origem e destino). Nenhum upload, nenhuma pasta criada.
+#   piloto      : libera escrita no PARCEIRO so para o lote-piloto aprovado
+#   execucao    : libera os lotes aprovados  <-- atual (Emmily, 19/10: PILOTO-02/03, PROD-01/02/03)
+fase: execucao
+
+banco: "data/migracao_parceiro.db"
+saida: "output/migracao_parceiro"
+
+origem:
+  drive_id: "00000000-0000-0000-0000-000000000000"
+  pasta: "5. Compartilhado PARCEIRO"
+  # copia sincronizada: usada SO para metadados (atributos), nunca para ler conteudo
+  local: "C:\\caminho\\exemplo\\sincronizada\\Programa - 5. Compartilhado PARCEIRO"
+  threads_listagem: 4
+
+destino:
+  # raiz WebDAV: https://nextcloud.example.com/remote.php/dav/files/<usuario>/PARCEIRO-INFRA/
+  montagem: "I:\\"
+  # identificador da conta na URL WebDAV (perfil do app PARCEIRO INFRA): usuario
+  # login da SENHA DE APLICATIVO = o nome exibido junto da senha ao cria-la (pode ser o e-mail)
+  login: "usuario"
+  # pastas de I:\ que nao sao alvo e nao precisam ser varridas a fundo
+  nao_varrer: [PARCEIRO ADMINISTRATIVO]
+
+# Fora do escopo por decisao da Emmily (19/10/2026): inventariar, nao migrar, nao apagar
+fora_do_escopo: [06. CERTIFICADORA ENTREGA]
+
+# Remotes do rclone (definidos so em memoria por scripts/rcparceiro.ps1)
+remotes:
+  origem: "prog:5. Compartilhado PARCEIRO"
+  # sublinhado, nao hifen: o rclone 1.75 nao acha remote de variavel de ambiente com hifen no nome
+  destino: "parceiro_infra_migracao:PARCEIRO-INFRA"     # = raiz de I:\ (perfil do app PARCEIRO INFRA)
+
+transferencia:
+  concorrencia: 4                # inicial (PILOTO-01: 4 em paralelo = 6,6 MiB/s)
+  concorrencia_min: 2            # paralelismo adaptativo: sobe/desce pela vazao medida
+  concorrencia_max: 12
+  janela_ajuste_s: 90            # intervalo de avaliacao da vazao
+  memoria_max_mb: 1500           # acima disto o paralelismo cai (core/memstats do rclone)
+  tentativas_por_arquivo: 3      # retentativas imediatas com backoff (so erro transitorio)
+  conferir_em_linha: true        # cada arquivo e relido do PARCEIRO logo apos a copia (VALIDADO progressivo)
+  tamanho_max_gib_por_arquivo: 20  # acima disto o lote e recusado (video de 87,8 GiB exige estrategia aprovada)
+  max_tentativas: 8              # total por arquivo somando rodadas; depois fica FALHOU para revisao
+  flags_rclone: [--buffer-size, 16M, --timeout, 10m, --contimeout, 30s, --low-level-retries, 10, --webdav-nextcloud-chunk-size, 10M, --log-level, INFO]
+
+# Espaco local (piloto e execucao). Limites conferidos antes de cada arquivo.
+espaco:
+  reserva_minima_gib: 40         # nunca deixar o C: abaixo disto
+  teto_temporario_gib: 8         # soma maxima de temporarios proprios da migracao
+  tmp: "tmp/migracao_parceiro"

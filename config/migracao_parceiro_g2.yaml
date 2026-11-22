@@ -1,0 +1,105 @@
+﻿# ============================================================
+# Migracao G2 (Engenharia Programa) -> PARCEIRO INFRA  ·  operacao migracao_parceiro_g2
+# Independente da migracao "5. Compartilhado PARCEIRO" (config/migracao_parceiro.yaml,
+# data/migracao_parceiro.db): nada daqui le ou escreve aquela operacao.
+# Regras: docs/migracao_parceiro/g2/ (EAP + 11 notas). Credenciais NAO ficam aqui.
+# ============================================================
+
+# Trava propria. Valores:
+#   diagnostico : so leitura (SharePoint e PARCEIRO). Nenhum MKCOL, nenhum PUT.
+#   teste       : escrita SO na pasta de teste do motor (destino.pasta_teste)
+#   piloto      : escrita do lote-piloto aprovado
+#   execucao    : lotes de producao
+# Autorizacao escrita da Emmily na conversa de 28/10/2026 (prompt definitivo G2).
+# 30/10/2026 11:2x: as 4 rodovias concluidas; trava devolvida a 'diagnostico' (nenhuma escrita possivel).
+# Para nova escrita: voltar a 'execucao' com autorizacao expressa da Emmily.
+# 30/10/2026 ~18:0x: reaberta para a ultima revisao de todas as disciplinas da RD-102A e RD-103 (Emmily)
+# 30/10/2026 20:07: fila FILA 3 concluida (RD-102A 344 + RD-103 1.024 validados, 0 erros); escrita fechada de novo
+# 04/11/2026: reaberta para as decisoes da Emmily sobre as pendencias (NC renomeadas, PD-03/05/08/09/11/02, script 384)
+# 04/11/2026 ~10:45: decisoes executadas; escrita fechada de novo
+# 04/11/2026 ~15h: reaberta para a 2a mensagem de decisoes (Executivo RD-101, NC, SST julho, RM mensais, PD-20)
+# 04/11/2026 ~12h: 2a rodada concluida; escrita fechada de novo
+# 04/11/2026 ~13h: reaberta para os aprovados que faltavam (RD-104 Topograficos REV 02 e DUP REV 09)
+# 04/11/2026: envio concluido; escrita fechada
+# 04/11/2026: reaberta para repetir os 68 que falharam por queda de conexao
+# 04/11/2026: repeticao concluida; escrita fechada
+# 04/11/2026: reaberta para os 63 pendentes (conexao com o SharePoint voltou)
+# 04/11/2026: envio interrompido a pedido da Emmily; escrita fechada
+# 05/11/2026: reaberta para terminar os 61 aprovados da RD-104 e as correcoes estruturais (prompt de 05/11)
+# 05/11/2026: envio dos 61 e correcoes estruturais concluidos; escrita fechada
+fase: diagnostico
+
+banco: "data/migracao_parceiro_g2.db"
+saida: "output/migracao_parceiro_g2"
+logs: "logs/migracao_parceiro_g2"
+tmp: "tmp/migracao_parceiro_g2"
+
+eap:
+  manifesto: "docs/migracao_parceiro/g2/privado/G2_EAP_04_ENGENHARIA_MANIFESTO.json"
+  excel: "docs/migracao_parceiro/g2/privado/EAP_Repositorio_G2_COM_NOTAS.xlsx"
+  sha256_excel: "0000000000000000000000000000000000000000000000000000000000000000"
+  fontes_bm: "docs/migracao_parceiro/g2/privado/g2_fontes_bm.json"
+
+destino:
+  base_dav: "https://nextcloud.example.com/remote.php/dav"
+  uid: "usuario"
+  raiz: "PARCEIRO-INFRA"
+  # as UNICAS quatro arvores em que o motor pode escrever
+  arvores:
+    RD-101: "PARCEIRO-INFRA/03. RD-101/04. Engenharia"
+    RD-102A: "PARCEIRO-INFRA/04. RD-102A/04. Engenharia"
+    RD-103: "PARCEIRO-INFRA/05. RD-103/04. Engenharia"
+    RD-104: "PARCEIRO-INFRA/06. RD-104/04. Engenharia"
+  # rodovias com escrita LIBERADA. 29/10/2026 (D-12): Emmily autorizou RD-101, RD-102A e RD-104; cada uma entra
+  # aqui so depois de planejada (366). Historico 28/10: uma rodovia por vez, RD-103
+  # primeiro; RD-101, RD-102A e RD-104 BLOQUEADAS ate aprovacao expressa dos resultados da RD-103.
+  # 29/10 13:4x: ordem pedida pela Emmily: 102A -> 101 -> 104 (a 104 volta para esta lista depois da 101)
+  rodovias_liberadas: [RD-103, RD-102A, RD-101, RD-104]
+  # pasta do teste do motor (fase 'teste' SOMENTE): subpasta da pasta de teste criada pela propria
+  # migracao anterior; decisao da Emmily, 28/10/2026. Nada de terceiros nela.
+  pasta_teste: "PARCEIRO-INFRA/_TESTE_UPLOAD_RETOMAVEL/_G2_TESTE_MOTOR"
+  # Boletins de Medicao: ultimo MES DE REFERENCIA que pode estar no PARCEIRO (instrucao da Emmily, 29/10/2026,
+  # repassada a ela): RD-104 e RD-103 ate junho/2026; RD-101 e RD-102A ate maio/2026. Posteriores: fora.
+  bm_ate:
+    RD-101: "2026-05"
+    RD-102A: "2026-05"
+    RD-103: "2026-06"
+    RD-104: "2026-06"
+  # ramos sem NENHUMA escrita (nem pasta): nota 11
+  bloqueados: ["09. Eventograma"]
+  # ramos em que so a PASTA da EAP pode ser criada, nunca arquivo: notas 03 e 06
+  so_pasta: ["01. Projetos/03. RPFO (Revisão de Projeto em Fase de Obra)", "04. Desapropriação/01. DUP"]
+
+transferencia:
+  # 29/10/2026: o G2 e SECUNDARIO (projeto prioritario no mesmo notebook). Poucos workers e buffers pequenos;
+  # quem decide quantos rodam a cada instante e o governador (bloco recursos). Pico por worker ~ 2 x bloco.
+  concorrencia: 6
+  concorrencia_max: 6
+  limite_put_simples_mib: 16     # acima disto: chunking v2 com Overwrite: F
+  bloco_mib: 8
+  tentativas: 4
+
+# Governador de recursos (scripts/migra_g2/governador.py). Decisao da Emmily, 29/10/2026: o outro projeto tem
+# PRIORIDADE ABSOLUTA; o G2 so usa capacidade ociosa e prefere ficar pausado a degradar o principal.
+recursos:
+  # 29/10/2026 (11:5x), nova instrucao da Emmily: "tentar ir rodando e se der 98% para". Pausa com uso de RAM
+  # >= 98% (~330 MB livres de 16 GiB); reduz a 1 worker acima de 95%; volta abaixo de 95% por 2 min.
+  # (Antes: pausar < 3 GiB livres, iniciar >= 4 GiB.)
+  pausar_abaixo_mb: 330          # RAM disponivel: abaixo disto nenhum envio novo (uso >= 98%)
+  reduzir_abaixo_mb: 800         # abaixo disto 1 worker (uso >= 95%)
+  retomar_acima_mb: 800          # para sair da pausa, sustentado por estabilidade_s
+  cpu_reduzir_pct: 70
+  cpu_pausar_pct: 90
+  cpu_retomar_pct: 60
+  commit_pausar_pct: 97          # commit do sistema (RAM + paginacao)
+  disco_livre_min_gib: 8
+  estabilidade_s: 120
+  pausa_minima_s: 120
+  workers_max: 6                  # 30/10 09:3x: Emmily pediu o maximo possivel sem afetar o outro projeto; o governador sobe 1 por janela estavel de 2 min e corta na hora (1 worker com CPU >= 70% ou RAM < 800 MB; 0 com uso de RAM >= 98% ou CPU >= 90%)
+  sair_apos_pausa_s: 900         # pausado ha mais que isso: o executor sai (retomavel) e libera a memoria
+  # projeto prioritario: reconhecido pelo caminho do executavel (e descendentes); nunca alterado
+  marcadores_prioritario: ["entregas-finais-projeto-prog"]
+
+espaco:
+  # o motor faz streaming (RAM); o disco so recebe banco, logs e relatorios
+  reserva_minima_gib: 8

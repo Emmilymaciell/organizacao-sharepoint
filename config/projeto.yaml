@@ -1,0 +1,53 @@
+# ============================================================
+# Programa — Organização do SharePoint
+# Configuração do projeto. Credenciais ficam no .env, nunca aqui.
+# ============================================================
+
+# ------------------------------------------------------------
+# FASE — trava de segurança do projeto
+#   analise    : somente GET. Nenhuma escrita, nenhuma exclusão.  <-- atual
+#   execucao   : libera escrita, apenas sobre lista aprovada
+# ------------------------------------------------------------
+fase: analise
+permitir_escrita: false          # nenhum script pode gravar no SharePoint
+permitir_exclusao: false
+permitir_download_em_massa: false
+
+# ------------------------------------------------------------
+# ALVO
+# ------------------------------------------------------------
+sharepoint:
+  host: "contoso.sharepoint.com"
+  site: "/sites/exemplo"
+  biblioteca: "Programa"             # vazio = todas as bibliotecas do site
+
+# ------------------------------------------------------------
+# SAÍDAS (tudo local, fora do SharePoint; relativas à raiz do repositório)
+# ------------------------------------------------------------
+banco:  "data/organizacao.db"
+saida:  "output"
+logs:   "logs"
+tmp:    "tmp"
+
+# ------------------------------------------------------------
+# VARREDURA (delta query)
+# ------------------------------------------------------------
+varredura:
+  itens_por_pagina: 500          # $top do delta
+  commit_a_cada: 1000            # itens por transação
+  max_tentativas: 4
+  pausa_apos_429_s: 30           # o Graph manda o Retry-After; isto é o piso
+
+# ------------------------------------------------------------
+# ANÁLISE
+# ------------------------------------------------------------
+analise:
+  # Abaixo deste tamanho, duplicata não vale o esforço de reportar.
+  duplicata_min_bytes: 102400            # 100 KB
+  # Pastas que são candidatas naturais a descarte (só marca, não apaga).
+  padroes_descarte: ["backup", "superado", "obsoleto", "antigo", "old",
+                     "lixeira", "descartado", "versoes anteriores",
+                     "nao usar", "rascunho", "temp"]
+  # Extensões que costumam pesar sem valor documental.
+  extensoes_pesadas: [".zip", ".rar", ".7z", ".dav", ".mp4", ".mov", ".avi",
+                      ".iso", ".bak", ".pbix"]

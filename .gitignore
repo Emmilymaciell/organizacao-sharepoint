@@ -1,0 +1,70 @@
+# --- Credenciais: NUNCA versionar ---
+.env
+*.pfx
+*.cer
+*.key
+
+# --- Dados operacionais ---
+/data/*.db
+/data/*.db-wal
+/data/*.db-shm
+/logs/*.jsonl
+/logs/*.txt
+/tmp/
+
+# --- Python ---
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+
+# --- Office / Windows ---
+~$*
+*.tmp
+Thumbs.db
+desktop.ini
+
+# --- Saidas pesadas ---
+/output/**/*.zip
+/output/**/*.db
+
+# --- Logs de execucao (regeneraveis, ruido no historico) ---
+/logs/*.log
+
+# --- Relatorio grande e regeneravel ---
+# duplicatas.csv tem ~44 MB e sai de `python scripts/30_duplicatas.py`
+# em segundos a partir do banco. Versionar so o .md correspondente.
+/output/duplicatas.csv
+
+# --- ADR-0015 (Emmily AI Project OS): dado de terceiro fica no Drive, nao no Git ---
+/data/conferencia_esperada.json
+/backup/
+*.xlsx
+*.docx
+*.pdf
+/output/parceiro/resposta_oficio_000/
+/output/parceiro/PARCEIRO_INVENTARIO.csv
+
+# --- Migracao PARCEIRO: inventarios com nomes de documentos e pessoas (dado de terceiro) ---
+/output/migracao_parceiro/
+/tmp/migracao_parceiro/
+/data/*.db-journal
+/logs/**/*.log
+/logs/**/*.txt
+
+# log operacional da migracao PARCEIRO (preservado no backup/Drive, fora do Git)
+/logs/incidentes_migracao.csv
+
+# --- Migracao G2: originais com links anonimos de edicao e mapa de IDs (fora do Git) ---
+/docs/migracao_parceiro/g2/privado/
+
+# --- Migracao G2 (dados de terceiros, fora do Git) ---
+/output/migracao_parceiro_g2/
+/logs/migracao_parceiro_g2/
+
+# --- Relatorios de revisao do Ambient OS (contem o diff completo) ---
+/artifacts/
+
+# --- S09 (11/11/2026): evidencias GED com nomes de documentos; backup via eos mirror ---
+/output/ged_rd103_rev03/

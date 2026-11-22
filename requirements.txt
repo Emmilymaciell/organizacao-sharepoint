@@ -1,0 +1,4 @@
+# Dependencias de terceiros da Organizacao SharePoint (Python 3.12).
+# Versao medida no Python 3.12 desta maquina em 2026-10-11 (Emmily AI Project OS, fase 8).
+# O resto do codigo usa so a biblioteca padrao.
+matplotlib==3.11.2
